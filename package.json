@@ -14,5 +14,8 @@
     "lotion"
   ],
   "author": "Matt Bell <mappum@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "coins": "^2.2.6"
+  }
 }

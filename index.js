@@ -1,7 +1,9 @@
 let coins = require('coins')
-let ed25519Account = require('./ed25519Account.js')
-let secp256k1Account = require('./secp256k1Account.js')
-let multisigAccount = require('./multisigAccount.js')
+let {
+  ed25519Account,
+  secp256k1Account,
+  multisigAccount
+} = coins
 
 module.exports = function staking (opts = {}) {
   let unbondingPeriod = opts.unbondingPeriod || 30 * 24 * 60 * 60
@@ -19,7 +21,7 @@ module.exports = function staking (opts = {}) {
       bonded: {},
       unbonding: [],
       unbonded: {}
-    }
+    },
 
     onInput (input, tx, state, chain) {
       // withdraw from unbonded account
@@ -33,9 +35,10 @@ module.exports = function staking (opts = {}) {
       // withdraw from bonded account (must pay into unbond queue)
       if (input.bonded) {
         // get substate for this validator
-        let validator = state.bonded[input.validatorPubkey]
+        let validatorPubkey = input.validatorPubkey.toLowerCase()
+        let validator = state.bonded[validatorPubkey]
         if (validator == null) {
-          throw Error(`No staking state for validator "${input.validatorPubkey}"`)
+          throw Error(`No staking state for validator "${validatorPubkey}"`)
         }
 
         // calculate number of shares (input is denominated in coins)
@@ -50,14 +53,14 @@ module.exports = function staking (opts = {}) {
         accounts.onInput(modifiedOutput, tx, validator.accounts, chain)
 
         // remove voting power from validator
-        chain.validators[input.validatorPubkey] -= input.amount
+        chain.validators[validatorPubkey] -= input.amount
 
         // ensure tx pays into unbond queue
         tx.mustHaveOutput({
           type: input.type,
           amount: input.amount,
           address: input.address,
-          validatorPubkey: input.validatorPubkey,
+          validatorPubkey,
           unbond: true
         })
 
@@ -72,9 +75,10 @@ module.exports = function staking (opts = {}) {
       // add to unbonding queue, to be processed once period is over
       if (output.unbond) {
         // get substate for this validator
-        let validator = state.bonded[input.validatorPubkey]
+        let validatorPubkey = output.validatorPubkey.toLowerCase()
+        let validator = state.bonded[validatorPubkey]
         if (validator == null) {
-          throw Error(`No staking state for validator "${input.validatorPubkey}"`)
+          throw Error(`No staking state for validator "${validatorPubkey}"`)
         }
 
         // calculate number of shares
@@ -92,14 +96,15 @@ module.exports = function staking (opts = {}) {
 
       // bonding
       if (output.bond) {
-        let validator = state.bonded[input.validatorPubkey]
+        let validatorPubkey = output.validatorPubkey.toLowerCase()
+        let validator = state.bonded[output.validatorPubkey]
         if (validator == null) {
           validator = {
             balance: 0,
             shares: 0,
             accounts: {}
           }
-          state.bonded[input.validatorPubkey] = validator
+          state.bonded[output.validatorPubkey] = validator
         }
 
         // add coins and shares to total
@@ -110,7 +115,8 @@ module.exports = function staking (opts = {}) {
         validator.shares += shares
 
         // add voting power to validator
-        chain.validators[output.validatorPubkey] += output.amount
+        let votingPower = chain.validators[validatorPubkey] || 0
+        chain.validators[validatorPubkey] = votingPower + output.amount
 
         // add coins to bonded account balance
         // TODO: find a cleaner API for programmatically adding to accounts
@@ -129,9 +135,9 @@ module.exports = function staking (opts = {}) {
         let output = unbonding.shift()
 
         // get substate for this validator
-        let validator = state.bonded[input.validatorPubkey]
+        let validator = state.bonded[validatorPubkey]
         if (validator == null) {
-          throw Error(`No staking state for validator "${input.validatorPubkey}"`)
+          throw Error(`No staking state for validator "${validatorPubkey}"`)
         }
 
         // remove shares/coins from validator pool
@@ -149,3 +155,4 @@ module.exports = function staking (opts = {}) {
       }
     }
   }
+}
