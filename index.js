@@ -49,8 +49,8 @@ module.exports = function staking (opts = {}) {
         // ensure user has right to withdraw,
         // if so then deduct share balance and increase sequence
         // TODO: find a cleaner API for programmatically debiting accounts
-        let modifiedOutput = Object.assign({}, output, { amount: shares })
-        accounts.onInput(modifiedOutput, tx, validator.accounts, chain)
+        let modifiedInput = Object.assign({}, input, { amount: shares })
+        accounts.onInput(modifiedInput, tx, validator.accounts, chain)
 
         // remove voting power from validator
         chain.validators[validatorPubkey] -= input.amount
@@ -87,9 +87,9 @@ module.exports = function staking (opts = {}) {
 
         let modifiedOutput = Object.assign({}, output, {
           height: chain.height + unbondingPeriod,
-          shares,
-          amount: null
+          shares
         })
+        delete modifiedOutput.amount
         state.unbonding.push(modifiedOutput)
         return
       }
@@ -97,19 +97,20 @@ module.exports = function staking (opts = {}) {
       // bonding
       if (output.bond) {
         let validatorPubkey = output.validatorPubkey.toLowerCase()
-        let validator = state.bonded[output.validatorPubkey]
+        let validator = state.bonded[validatorPubkey]
         if (validator == null) {
           validator = {
             balance: 0,
             shares: 0,
             accounts: {}
           }
-          state.bonded[output.validatorPubkey] = validator
+          state.bonded[validatorPubkey] = validator
         }
 
         // add coins and shares to total
         // TODO: check that numbers don't go above Number.MAX_SAFE_INTEGER
         let sharesPerCoin = Math.floor(1e8 * validator.shares / validator.balance)
+        if (validator.balance === 0) sharesPerCoin = 1e8
         let shares = Math.floor(output.amount * sharesPerCoin / 1e8)
         validator.balance += output.amount
         validator.shares += shares
@@ -131,25 +132,26 @@ module.exports = function staking (opts = {}) {
 
     onBlock ({ bonded, unbonding, unbonded }, chain) {
       // process unbond queue
-      while (unbonding[0] != null && unbonding[0] <= chain.height) {
+      while (unbonding[0] != null && unbonding[0].height <= chain.height) {
         let output = unbonding.shift()
 
         // get substate for this validator
-        let validator = state.bonded[validatorPubkey]
+        let validatorPubkey = output.validatorPubkey
+        let validator = bonded[validatorPubkey]
         if (validator == null) {
           throw Error(`No staking state for validator "${validatorPubkey}"`)
         }
 
         // remove shares/coins from validator pool
         let coinsPerShare = Math.floor(1e8 * validator.balance / validator.shares)
+        if (validator.balance === 0) coinsPerShare = 1e8
         let coins = Math.floor(output.shares * coinsPerShare / 1e8)
         validator.shares -= output.shares
         validator.balance -= coins
 
-        let modifiedOutput = Object.assign({}, output, {
-          amount: coins,
-          shares: null
-        })
+        let modifiedOutput = Object.assign({}, output)
+        modifiedOutput.amount = coins
+        delete modifiedOutput.shares
         // TODO: find a cleaner API for programmatically adding to accounts
         accounts.onOutput(modifiedOutput, null, unbonded, chain)
       }
