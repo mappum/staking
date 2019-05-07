@@ -25,7 +25,7 @@ module.exports = function staking (opts = {}) {
     onInput (input, state, context) {
       // withdraw from bonded account (must pay into unbond queue)
       // get substate for this validator
-      let validatorPubkey = input.validatorPubkey.toLowerCase()
+      let validatorPubkey = input.validatorPubkey
       let validator = state.bonded[validatorPubkey]
       if (validator == null) {
         throw Error(`No staking state for validator "${validatorPubkey}"`)
@@ -60,7 +60,7 @@ module.exports = function staking (opts = {}) {
       // add to unbonding queue, to be processed once period is over
       if (output.unbond) {
         // get substate for this validator
-        let validatorPubkey = output.validatorPubkey.toLowerCase()
+        let validatorPubkey = output.validatorPubkey
         let validator = state.bonded[validatorPubkey]
         if (validator == null) {
           throw Error(`No staking state for validator "${validatorPubkey}"`)
@@ -81,7 +81,7 @@ module.exports = function staking (opts = {}) {
 
       // bonding
       if (output.bond) {
-        let validatorPubkey = output.validatorPubkey.toLowerCase()
+        let validatorPubkey = output.validatorPubkey
         let validator = state.bonded[validatorPubkey]
         if (validator == null) {
           validator = {
