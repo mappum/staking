@@ -16,6 +16,6 @@
   "author": "Matt Bell <mappum@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "coins": "^2.2.6"
+    "coins": "^4.5.0"
   }
 }
