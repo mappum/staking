@@ -5,11 +5,7 @@ let {
   multisigAccount
 } = coins
 
-module.exports = function staking (tokenRoute, opts = {}) {
-  if (!tokenRoute) {
-    throw Error('Must specify token route')
-  }
-
+module.exports = function staking (opts = {}) {
   let unbondingPeriod = opts.unbondingPeriod || 30 * 24 * 60 * 60
 
   // create accounts handler to use recursively for bonded accounts
@@ -142,7 +138,7 @@ module.exports = function staking (tokenRoute, opts = {}) {
         modifiedOutput.amount = coins
         delete modifiedOutput.shares
         // TODO: find a cleaner API for programmatically adding to accounts
-        context.modules[tokenRoute].mint(modifiedOutput)
+        context.mint(modifiedOutput)
       }
     }
   }
