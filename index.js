@@ -137,7 +137,6 @@ module.exports = function staking (opts = {}) {
         let modifiedOutput = Object.assign({}, output)
         modifiedOutput.amount = coins
         delete modifiedOutput.shares
-        // TODO: find a cleaner API for programmatically adding to accounts
         context.mint(modifiedOutput)
       }
     }
