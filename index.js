@@ -56,7 +56,7 @@ module.exports = function staking (opts = {}) {
     },
 
     // bond, or put into unbond queue
-    onOutput (output, tx, state, context) {
+    onOutput (output, state, context) {
       // add to unbonding queue, to be processed once period is over
       if (output.unbond) {
         // get substate for this validator
